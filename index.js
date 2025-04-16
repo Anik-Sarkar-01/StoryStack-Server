@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -28,10 +28,18 @@ async function run() {
 
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
-        
+
         // get all blogs from db
-        app.get('/all-blogs', async(req, res) => {
+        app.get('/all-blogs', async (req, res) => {
             const result = await blogs.find().toArray();
+            res.send(result);
+        })
+
+        // get a specific job details by id
+        app.get('/all-blogs/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id)};
+            const result = await blogs.findOne(query);
             res.send(result);
         })
 
