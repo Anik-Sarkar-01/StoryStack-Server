@@ -29,6 +29,7 @@ async function run() {
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
+        const wishlist = database.collection("wishlist");
         await blogs.createIndex({title: "text"})
 
         // add a blog to db
@@ -90,6 +91,22 @@ async function run() {
                 $set: blogData,
             };
             const result = await blogs.updateOne(filter, updateBlog, options);
+            res.send(result);
+        })
+
+        // add a blog to wishlist
+        app.post('/add-wishlist', async (req, res) => {
+            const wishBlog = req.body;
+            const result = await wishlist.insertOne(wishBlog);
+            res.send(result);
+        })
+
+        // get all blogs in the wishlist by user email
+
+        app.get('/all-wishlist', async(req, res) => {
+            const email = req.query.email;
+            const query = {userEmail : email};
+            const result = await wishlist.find(query).toArray();
             res.send(result);
         })
 
