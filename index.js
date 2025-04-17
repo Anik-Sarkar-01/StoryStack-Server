@@ -29,6 +29,13 @@ async function run() {
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
 
+        // add a blog to db
+        app.post('/add-blog', async(req, res) => {
+            const newBlog = req.body;
+            const result = await blogs.insertOne(newBlog);
+            res.send(result);
+        })
+
         // get all blogs from db
         app.get('/all-blogs', async (req, res) => {
             const result = await blogs.find().toArray();
