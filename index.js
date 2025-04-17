@@ -58,17 +58,24 @@ async function run() {
             res.send(result);
         })
 
-        // get all comments from db
-        app.get("/all-comments", async(req, res) => {
-            const result = await comments.find().toArray();
-            res.send(result);
-        })
-
         // get comments by blog id
         app.get("/all-comments/:blog_id", async(req, res) => {
             const blog_id = req.params.blog_id;
             const query = {blog_id : blog_id};
             const result = await comments.find(query).toArray();
+            res.send(result);
+        })
+
+        // update a specific blog
+        app.put("/all-blogs/:id", async(req, res) => {
+            const id = req.params.id;
+            const blogData = req.body;
+            const filter = { _id: new ObjectId(id) };
+            const options = { upsert: true };
+            const updateBlog = {
+                $set: blogData,
+            };
+            const result = await blogs.updateOne(filter, updateBlog, options);
             res.send(result);
         })
 
