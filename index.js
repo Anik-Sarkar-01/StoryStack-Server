@@ -102,12 +102,19 @@ async function run() {
         })
 
         // get all blogs in the wishlist by user email
-
         app.get('/all-wishlist', async(req, res) => {
             const email = req.query.email;
             const query = {userEmail : email};
             const result = await wishlist.find(query).toArray();
             res.send(result);
+        })
+
+        // delete blog from wishlist by id
+        app.delete('/delete-wishBlog/:id', async(req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await wishlist.deleteOne(query);
+            res.send(result)
         })
 
 
