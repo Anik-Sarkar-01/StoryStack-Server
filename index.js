@@ -28,6 +28,7 @@ async function run() {
 
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
+        const comments = database.collection("comments");
 
         // add a blog to db
         app.post('/add-blog', async(req, res) => {
@@ -42,11 +43,32 @@ async function run() {
             res.send(result);
         })
 
-        // get a specific job details by id
+        // get a specific blog details by id
         app.get('/all-blogs/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id)};
             const result = await blogs.findOne(query);
+            res.send(result);
+        })
+
+        // add a comment to db
+        app.post('/add-comment', async(req, res) => {
+            const newComment = req.body;
+            const result = await comments.insertOne(newComment);
+            res.send(result);
+        })
+
+        // get all comments from db
+        app.get("/all-comments", async(req, res) => {
+            const result = await comments.find().toArray();
+            res.send(result);
+        })
+
+        // get comments by blog_id
+        app.get("/all-comments/:blog_id", async(req, res) => {
+            const blog_id = req.params.blog_id;
+            const query = {blog_id : blog_id};
+            const result = await comments.find(query).toArray();
             res.send(result);
         })
 
