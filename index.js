@@ -16,7 +16,7 @@ const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@clu
 const client = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
-        strict: true,
+        strict: false,
         deprecationErrors: true,
     }
 });
@@ -29,9 +29,10 @@ async function run() {
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
+        await blogs.createIndex({title: "text"})
 
         // add a blog to db
-        app.post('/add-blog', async(req, res) => {
+        app.post('/add-blog', async (req, res) => {
             const newBlog = req.body;
             const result = await blogs.insertOne(newBlog);
             res.send(result);
@@ -39,35 +40,48 @@ async function run() {
 
         // get all blogs from db
         app.get('/all-blogs', async (req, res) => {
-            const result = await blogs.find().toArray();
+            const filter = req.query.filter;
+            const search = req.query.search;
+
+            let query = {};
+
+            if (filter) {
+                query.category = filter;
+            }
+
+            if (search) {
+                query.$text = { $search: search, $caseSensitive: false };
+            }
+
+            const result = await blogs.find(query).toArray();
             res.send(result);
         })
 
         // get a specific blog details by id
         app.get('/all-blogs/:id', async (req, res) => {
             const id = req.params.id;
-            const query = { _id: new ObjectId(id)};
+            const query = { _id: new ObjectId(id) };
             const result = await blogs.findOne(query);
             res.send(result);
         })
 
         // add a comment to db
-        app.post('/add-comment', async(req, res) => {
+        app.post('/add-comment', async (req, res) => {
             const newComment = req.body;
             const result = await comments.insertOne(newComment);
             res.send(result);
         })
 
         // get comments by blog id
-        app.get("/all-comments/:blog_id", async(req, res) => {
+        app.get("/all-comments/:blog_id", async (req, res) => {
             const blog_id = req.params.blog_id;
-            const query = {blog_id : blog_id};
+            const query = { blog_id: blog_id };
             const result = await comments.find(query).toArray();
             res.send(result);
         })
 
         // update a specific blog
-        app.put("/all-blogs/:id", async(req, res) => {
+        app.put("/all-blogs/:id", async (req, res) => {
             const id = req.params.id;
             const blogData = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -97,5 +111,5 @@ app.get('/', (req, res) => {
 })
 
 app.listen(port, () => {
-    console.log(`Story Stack is listening on port ${port}..`);
+    console.log(`Story Stack is listening on port ${port}`);
 })
