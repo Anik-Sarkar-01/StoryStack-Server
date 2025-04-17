@@ -64,7 +64,7 @@ async function run() {
             res.send(result);
         })
 
-        // get comments by blog_id
+        // get comments by blog id
         app.get("/all-comments/:blog_id", async(req, res) => {
             const blog_id = req.params.blog_id;
             const query = {blog_id : blog_id};
