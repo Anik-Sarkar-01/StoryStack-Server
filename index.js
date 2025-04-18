@@ -30,7 +30,7 @@ async function run() {
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
         const wishlist = database.collection("wishlist");
-        await blogs.createIndex({title: "text"})
+        await blogs.createIndex({ title: "text" })
 
         // add a blog to db
         app.post('/add-blog', async (req, res) => {
@@ -57,6 +57,12 @@ async function run() {
             const result = await blogs.find(query).toArray();
             res.send(result);
         })
+
+        // get recent blog from db
+        app.get("/recent-blogs", async (req, res) => {
+            const result = await blogs.find().limit(6).toArray();
+            res.send(result);
+        });
 
         // get a specific blog details by id
         app.get('/all-blogs/:id', async (req, res) => {
@@ -102,21 +108,32 @@ async function run() {
         })
 
         // get all blogs in the wishlist by user email
-        app.get('/all-wishlist', async(req, res) => {
+        app.get('/all-wishlist', async (req, res) => {
             const email = req.query.email;
-            const query = {userEmail : email};
+            const query = { userEmail: email };
             const result = await wishlist.find(query).toArray();
             res.send(result);
         })
 
         // delete blog from wishlist by id
-        app.delete('/delete-wishBlog/:id', async(req, res) => {
+        app.delete('/delete-wishBlog/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await wishlist.deleteOne(query);
             res.send(result)
         })
 
+        // get featured blogs (top 10) 
+        app.get('/featured-blogs', async (req, res) => {
+            const allBlogs = await blogs.find().toArray();
+            const sortedBlogs = allBlogs.map(blog => ({
+                ...blog, wordCount: blog.longDescription ? blog.longDescription
+                    .split(' ').length : 0
+            }))
+                .sort((a, b) => b.wordCount - a.wordCount)
+                .slice(0, 10);
+            res.send(sortedBlogs);
+        });
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
