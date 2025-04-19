@@ -103,6 +103,10 @@ async function run() {
         // add a blog to wishlist
         app.post('/add-wishlist', async (req, res) => {
             const wishBlog = req.body;
+            const existing = await wishlist.findOne({id : wishBlog.id});
+            if(existing){
+               return res.status(409).send({message: "Already Exists"})
+            }
             const result = await wishlist.insertOne(wishBlog);
             res.send(result);
         })
