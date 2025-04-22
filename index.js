@@ -30,6 +30,7 @@ async function run() {
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
         const wishlist = database.collection("wishlist");
+        const bloggerCorner = database.collection("bloggerCorner");
         await blogs.createIndex({ title: "text" })
 
         // add a blog to db
@@ -103,9 +104,9 @@ async function run() {
         // add a blog to wishlist
         app.post('/add-wishlist', async (req, res) => {
             const wishBlog = req.body;
-            const existing = await wishlist.findOne({id : wishBlog.id});
-            if(existing){
-               return res.status(409).send({message: "Already Exists"})
+            const existing = await wishlist.findOne({ id: wishBlog.id });
+            if (existing) {
+                return res.status(409).send({ message: "Already Exists" })
             }
             const result = await wishlist.insertOne(wishBlog);
             res.send(result);
@@ -137,6 +138,20 @@ async function run() {
                 .sort((a, b) => b.wordCount - a.wordCount)
                 .slice(0, 10);
             res.send(sortedBlogs);
+        });
+
+        // get all content from bloggerCorner
+        app.get('/blogger-corner', async(req, res) => {
+            const result = await bloggerCorner.find().toArray();
+            res.send(result);
+        })
+
+        // get content form blogger corner by id
+        app.get('/blogger-corner/:id', async (req, res) => {
+            const contentId = req.params.id;
+            const query = { _id: new ObjectId(contentId) }; 
+            const result = await bloggerCorner.findOne(query);
+            res.send(result);
         });
 
         // Send a ping to confirm a successful connection
