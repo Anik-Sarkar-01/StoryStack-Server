@@ -1,13 +1,36 @@
 const express = require('express');
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
+const cookieParser = require('cookie-parser');
 require('dotenv').config()
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors());
-app.use(express.json());
+app.use(cors({
+    origin: ['http://localhost:5173'],
+    credentials: true
+}));
 
+app.use(express.json());
+app.use(cookieParser())
+
+const verifyToken = (req, res, next) => {
+    // console.log('inside verify token middleware');
+    const token = req?.cookies?.token;
+
+    if (!token) {
+        return res.status(401).send({ message: 'Unauthorized Access' })
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
+        if (error) {
+            return res.status(401).send({ message: 'Unauthorized Access' })
+        }
+        req.user = decoded;
+        next();
+    })
+}
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.bkijc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -25,13 +48,31 @@ async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
         await client.connect();
-
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
         const wishlist = database.collection("wishlist");
         const bloggerCorner = database.collection("bloggerCorner");
         await blogs.createIndex({ title: "text" })
+
+        // auth related apis
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' });
+            res.cookie('token', token, {
+                httpOnly: true,
+                secure: false,
+            })
+            .send({ success: true });
+        })
+
+        app.post('/logout', (req, res) => {
+            res.clearCookie('token', {
+                httpOnly: true,
+                secure: false
+            })
+            .send({success: true})
+        })
 
         // add a blog to db
         app.post('/add-blog', async (req, res) => {
@@ -113,9 +154,16 @@ async function run() {
         })
 
         // get all blogs in the wishlist by user email
-        app.get('/all-wishlist', async (req, res) => {
+        app.get('/all-wishlist', verifyToken, async (req, res) => {
             const email = req.query.email;
             const query = { userEmail: email };
+
+            if (req.user.email !== req.query.email) {
+                return res.status(403).send({ message: 'forbidden access' });
+            }
+
+            console.log("Cook Cook Cookies yah yah", req.cookies);
+
             const result = await wishlist.find(query).toArray();
             res.send(result);
         })
@@ -141,7 +189,7 @@ async function run() {
         });
 
         // get all content from bloggerCorner
-        app.get('/blogger-corner', async(req, res) => {
+        app.get('/blogger-corner', async (req, res) => {
             const result = await bloggerCorner.find().toArray();
             res.send(result);
         })
@@ -149,7 +197,7 @@ async function run() {
         // get content form blogger corner by id
         app.get('/blogger-corner/:id', async (req, res) => {
             const contentId = req.params.id;
-            const query = { _id: new ObjectId(contentId) }; 
+            const query = { _id: new ObjectId(contentId) };
             const result = await bloggerCorner.findOne(query);
             res.send(result);
         });
