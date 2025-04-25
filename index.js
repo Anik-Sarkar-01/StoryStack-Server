@@ -8,7 +8,11 @@ const app = express();
 const port = process.env.PORT || 5000;
 
 app.use(cors({
-    origin: ['http://localhost:5173'],
+    origin: [
+        'http://localhost:5173',
+        'https://story-stack-d45ff.web.app',
+        'https://story-stack-d45ff.firebaseapp.com',
+    ],
     credentials: true
 }));
 
@@ -16,7 +20,6 @@ app.use(express.json());
 app.use(cookieParser())
 
 const verifyToken = (req, res, next) => {
-    // console.log('inside verify token middleware');
     const token = req?.cookies?.token;
 
     if (!token) {
@@ -47,13 +50,15 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
         const wishlist = database.collection("wishlist");
         const bloggerCorner = database.collection("bloggerCorner");
         await blogs.createIndex({ title: "text" })
+        await wishlist.createIndex({ id: 1, userEmail: 1 }, { unique: true });
+
 
         // auth related apis
         app.post('/jwt', (req, res) => {
@@ -61,21 +66,23 @@ async function run() {
             const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' });
             res.cookie('token', token, {
                 httpOnly: true,
-                secure: false,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? "none" : "strict",
             })
-            .send({ success: true });
+                .send({ success: true });
         })
 
         app.post('/logout', (req, res) => {
             res.clearCookie('token', {
                 httpOnly: true,
-                secure: false
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: process.env.NODE_ENV === 'production' ? "none" : "strict",
             })
-            .send({success: true})
+                .send({ success: true })
         })
 
         // add a blog to db
-        app.post('/add-blog', async (req, res) => {
+        app.post('/add-blog', verifyToken, async (req, res) => {
             const newBlog = req.body;
             const result = await blogs.insertOne(newBlog);
             res.send(result);
@@ -107,7 +114,7 @@ async function run() {
         });
 
         // get a specific blog details by id
-        app.get('/all-blogs/:id', async (req, res) => {
+        app.get('/all-blogs/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await blogs.findOne(query);
@@ -130,7 +137,7 @@ async function run() {
         })
 
         // update a specific blog
-        app.put("/all-blogs/:id", async (req, res) => {
+        app.put("/all-blogs/:id", verifyToken, async (req, res) => {
             const id = req.params.id;
             const blogData = req.body;
             const filter = { _id: new ObjectId(id) };
@@ -145,7 +152,10 @@ async function run() {
         // add a blog to wishlist
         app.post('/add-wishlist', async (req, res) => {
             const wishBlog = req.body;
-            const existing = await wishlist.findOne({ id: wishBlog.id });
+            const existing = await wishlist.findOne({
+                id: wishBlog.id,
+                userEmail: wishBlog.userEmail
+            });
             if (existing) {
                 return res.status(409).send({ message: "Already Exists" })
             }
@@ -161,8 +171,6 @@ async function run() {
             if (req.user.email !== req.query.email) {
                 return res.status(403).send({ message: 'forbidden access' });
             }
-
-            console.log("Cook Cook Cookies yah yah", req.cookies);
 
             const result = await wishlist.find(query).toArray();
             res.send(result);
@@ -203,8 +211,8 @@ async function run() {
         });
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // await client.db("admin").command({ ping: 1 });
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     } finally {
         // Ensures that the client will close when you finish/error
