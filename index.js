@@ -50,13 +50,13 @@ const client = new MongoClient(uri, {
 
 async function run() {
     try {
-        // Connect the client to the server	(optional starting in v4.7)
-        // await client.connect();
         const database = client.db("StoryStackDB");
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
         const wishlist = database.collection("wishlist");
-        const bloggerCorner = database.collection("bloggerCorner");
+
+
+
         await blogs.createIndex({ title: "text" })
         await wishlist.createIndex({ id: 1, userEmail: 1 }, { unique: true });
 
@@ -198,27 +198,11 @@ async function run() {
             res.send(sortedBlogs);
         });
 
-        // get all content from bloggerCorner
-        app.get('/blogger-corner', async (req, res) => {
-            const result = await bloggerCorner.find().toArray();
-            res.send(result);
-        })
-
-        // get content form blogger corner by id
-        app.get('/blogger-corner/:id', async (req, res) => {
-            const contentId = req.params.id;
-            const query = { _id: new ObjectId(contentId) };
-            const result = await bloggerCorner.findOne(query);
-            res.send(result);
-        });
-
-        // Send a ping to confirm a successful connection
-        // await client.db("admin").command({ ping: 1 });
+        
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     } finally {
-        // Ensures that the client will close when you finish/error
-        // await client.close();
+        
     }
 }
 run().catch(console.dir);
