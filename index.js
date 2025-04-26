@@ -1,31 +1,32 @@
+require('dotenv').config()
 const express = require('express');
 const cors = require('cors');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const jwt = require('jsonwebtoken');
 const cookieParser = require('cookie-parser');
-require('dotenv').config()
-const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port = process.env.PORT || 5000;
 
-app.use(cors({
-    origin: [
-        'http://localhost:5173',
-        'https://story-stack-d45ff.web.app',
-        'https://story-stack-d45ff.firebaseapp.com',
-    ],
-    credentials: true
-}));
+app.use(
+    cors({
+        origin: [
+            "http://localhost:5173",
+            "https://story-stack-d45ff.web.app",
+            "https://story-stack-d45ff.firebaseapp.com",
+        ],
+        credentials: true,
+    })
+);
 
 app.use(express.json());
-app.use(cookieParser())
+app.use(cookieParser());
+
 
 const verifyToken = (req, res, next) => {
     const token = req?.cookies?.token;
-
     if (!token) {
         return res.status(401).send({ message: 'Unauthorized Access' })
     }
-
     jwt.verify(token, process.env.JWT_SECRET, (error, decoded) => {
         if (error) {
             return res.status(401).send({ message: 'Unauthorized Access' })
@@ -35,8 +36,8 @@ const verifyToken = (req, res, next) => {
     })
 }
 
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.bkijc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
+
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -63,7 +64,7 @@ async function run() {
         // auth related apis
         app.post('/jwt', (req, res) => {
             const user = req.body;
-            const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: '50h' });
             res.cookie('token', token, {
                 httpOnly: true,
                 secure: process.env.NODE_ENV === 'production',
@@ -71,6 +72,7 @@ async function run() {
             })
                 .send({ success: true });
         })
+
 
         app.post('/logout', (req, res) => {
             res.clearCookie('token', {
@@ -212,7 +214,7 @@ async function run() {
 
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
-        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     } finally {
         // Ensures that the client will close when you finish/error
