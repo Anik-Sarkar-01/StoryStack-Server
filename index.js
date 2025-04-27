@@ -54,11 +54,8 @@ async function run() {
         const blogs = database.collection("blogs");
         const comments = database.collection("comments");
         const wishlist = database.collection("wishlist");
+        const bloggerCorner = database.collection("bloggerCorner");
 
-
-
-        await blogs.createIndex({ title: "text" })
-        await wishlist.createIndex({ id: 1, userEmail: 1 }, { unique: true });
 
 
         // auth related apis
@@ -198,11 +195,24 @@ async function run() {
             res.send(sortedBlogs);
         });
 
-        
+        // get blogger corner 
+        app.get('/blogger-corner', async (req, res) => {
+            const result = await bloggerCorner.find().toArray();
+            res.send(result);
+        })
+
+        // get bloggerCorner blog by id
+        app.get('/blogger-corner/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await bloggerCorner.findOne(query);
+            res.send(result);
+        })
+
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
 
     } finally {
-        
+
     }
 }
 run().catch(console.dir);
